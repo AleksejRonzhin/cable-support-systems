@@ -5,9 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class CableSupportSystemsApplication {
-
-	public static void main(String[] args) {
-		SpringApplication.run(CableSupportSystemsApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(CableSupportSystemsApplication.class, args);
+    }
 }

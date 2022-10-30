@@ -1,4 +1,4 @@
-package ru.rsreu.cable.services.utils;
+package ru.rsreu.cable.utils;
 
 import ru.rsreu.cable.models.Building;
 import ru.rsreu.cable.models.ElementType;

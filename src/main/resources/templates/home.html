@@ -1,10 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>Cable Support Systems</title>
+    <link rel="stylesheet" th:href="@{/css/stylesheet.css}"/>
 </head>
 <body>
-$END$
+<table>
+    <tr>
+        <td>
+            <div>
+                <h2>Загрузка файла</h2>
+                <p th:if="${message ne null}" th:text="${message}"></p>
+                <form enctype="multipart/form-data" method="post" th:action="@{/upload}">
+                    <div>
+                        <input accept=".txt" name="file" type="file">
+                    </div>
+                    <button type="submit">Начать</button>
+                </form>
+            </div>
+        </td>
+        <td>
+            <div th:if="${resultFilename ne null}">
+                <h2>Выгрузка результата</h2>
+                <a th:href="${resultFilename}" th:download="${resultFilename}">Скачать</a>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div th:if="${source ne null}">
+                <h2>Исходные данные</h2>
+                <table class="buildingTable">
+                    <tr th:each="line : ${source}">
+                        <td th:each="symbol : ${line}">
+                            <p th:text="${symbol}"></p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </td>
+        <td>
+            <div th:if="${result ne null}">
+                <h2>Результат</h2>
+                <table class="buildingTable">
+                    <tr th:each="line : ${result}">
+                        <td th:each="symbol : ${line}">
+                            <p th:text="${symbol}"></p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </td>
+    </tr>
+</table>
 </body>
 </html>
