@@ -7,6 +7,8 @@ import ru.rsreu.cable.utils.BuildingUtils;
 
 import java.util.List;
 
+import static ru.rsreu.cable.utils.BuildingUtils.*;
+
 @Service
 public class CableSupportSystemService {
     public Building createBuilding(List<String> args) throws IncorrectFileException {
@@ -44,6 +46,10 @@ public class CableSupportSystemService {
     }
 
     public Building buildCableSupportSystem(Building sourceBuilding) {
-        return sourceBuilding;
+        Building building = addCablesFrame(sourceBuilding);
+        building = addFlyingCables(building);
+        building = addNodes(building);
+        building = getResult(building);
+        return building;
     }
 }

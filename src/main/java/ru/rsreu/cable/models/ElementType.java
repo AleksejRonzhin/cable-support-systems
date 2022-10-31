@@ -6,7 +6,8 @@ public enum ElementType {
     PIPE('T'),
     SUPPLIER('E'),
     CONSUMER('C'),
-    CABLE('S');
+    CABLE('S'),
+    NODE('N');
 
     private final char symbol;
 
