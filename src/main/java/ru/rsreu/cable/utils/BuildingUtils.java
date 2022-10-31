@@ -2,6 +2,7 @@ package ru.rsreu.cable.utils;
 
 import ru.rsreu.cable.graph.BuildingGraphEdgesFinder;
 import ru.rsreu.cable.graph.GraphEdge;
+import ru.rsreu.cable.graph.GraphNode;
 import ru.rsreu.cable.models.Building;
 import ru.rsreu.cable.models.ElementType;
 
@@ -154,10 +155,121 @@ public class BuildingUtils {
     }
 
     public static Building getResult(Building building) {
-        List<GraphEdge> edges = new BuildingGraphEdgesFinder(building).find();
+        BuildingGraphEdgesFinder finder = new BuildingGraphEdgesFinder(building);
+        List<GraphEdge> edges = finder.find();
+        List<GraphNode> nodes = finder.getNodes();
+        System.out.println("nodes count =" + nodes.size());
+        nodes.forEach(System.out::println);
         System.out.println("edges count =" + edges.size());
         edges.forEach(System.out::println);
+        List<GraphNode> consumers = getConsumers(nodes);
+        System.out.println("CONSUMERS:");
+        consumers.forEach(System.out::println);
+        List<GraphNode> suppliers = getSuppliers(nodes);
+        System.out.println("SUPPLIERS");
+        suppliers.forEach(System.out::println);
+
+        // Найти минимальные пути каждого постовщика и потребитель
+        // скомбинировать их
+        // построить пути
+
+        int nodesCount = nodes.size();
+        int[][] table = new int[nodesCount][nodesCount];
+        for (int i = 0; i < nodesCount; i++) {
+            for (int j = 0; j < nodesCount; j++) {
+                table[i][j] = 0;
+            }
+        }
+        for (GraphEdge edge : edges) {
+            int i = nodes.indexOf(edge.getFirstNode());
+            int j = nodes.indexOf(edge.getSecondNode());
+            table[i][j] = edge.getDistance();
+            table[j][i] = edge.getDistance();
+        }
+
+        for (int i = 0; i < nodesCount; i++) {
+            for (int j = 0; j < nodesCount; j++) {
+                System.out.print(table[i][j] + " ");
+            }
+            System.out.println();
+        }
+        dijkstra(table, nodesCount, nodes.indexOf(suppliers.get(0)), nodes.indexOf(consumers.get(1)));
         return building;
+    }
+
+    private static void dijkstra(int[][] table, int size, int beginIndex, int targetIndex) {
+        int[] distances = new int[size];
+        int[] visitedNodes = new int[size];
+        int minIndex, min, temp;
+
+        for (int i = 0; i < size; i++) {
+            distances[i] = Integer.MAX_VALUE;
+            visitedNodes[i] = 1;
+        }
+        distances[beginIndex] = 0;
+        do {
+            minIndex = Integer.MAX_VALUE;
+            min = Integer.MAX_VALUE;
+            for (int i = 0; i < size; i++) {
+                if ((visitedNodes[i] == 1) && (distances[i] < min)) {
+                    min = distances[i];
+                    minIndex = i;
+                }
+            }
+            if (minIndex != Integer.MAX_VALUE) {
+                for (int i = 0; i < size; i++) {
+                    if (table[minIndex][i] > 0) {
+                        temp = min + table[minIndex][i];
+                        if (temp < distances[i]) {
+                            distances[i] = temp;
+                        }
+                    }
+                }
+                visitedNodes[minIndex] = 0;
+            }
+        } while (minIndex < Integer.MAX_VALUE);
+        System.out.println("Вывод кратчайщих путей");
+        for (int i = 0; i < size; i++) {
+            System.out.println(i + ": " + distances[i]);
+        }
+
+        int[] ver = new int[size];
+        int end = targetIndex;
+        ver[0] = end;
+        int k = 1;
+        int weight = distances[end];
+
+        while(end != beginIndex){
+            for(int i = 0; i < size; i++){
+                if(table[i][end] != 0){
+                    temp = weight - table[i][end];
+                    if(temp == distances[i]){
+                        weight = temp;
+                        end = i;
+                         ver[k] = i;
+                         k++;
+                    }
+                }
+            }
+        }
+
+        System.out.println("Вывод пути от " + beginIndex + " до " + targetIndex);
+        for(int i = k - 1; i >= 0; i--){
+            System.out.print(ver[i] + " ");
+        }
+    }
+
+    private static List<GraphNode> getSuppliers(List<GraphNode> nodes) {
+        return getNodesByType(nodes, ElementType.SUPPLIER);
+    }
+
+    private static List<GraphNode> getConsumers(List<GraphNode> nodes) {
+        return getNodesByType(nodes, ElementType.CONSUMER);
+    }
+
+    private static List<GraphNode> getNodesByType(List<GraphNode> nodes, ElementType type) {
+        return nodes.stream().filter(node -> node.getType() == type).collect(Collectors.toList());
+
     }
 
     public static List<ElementType> getCheckingElements(int height, int length, ElementType[][] originalElements, int i, int j) {

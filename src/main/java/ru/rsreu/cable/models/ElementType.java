@@ -4,8 +4,8 @@ public enum ElementType {
     SPACE('O'),
     WALL('X'),
     PIPE('T'),
-    SUPPLIER('E'),
-    CONSUMER('C'),
+    SUPPLIER('E'), // Производитель
+    CONSUMER('C'), // Потребитель
     CABLE('S'),
     NODE('N');
 

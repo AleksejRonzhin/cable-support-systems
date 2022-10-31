@@ -7,15 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BuildingGraphUtils {
-
-    public static List<GraphEdge> getGraphEdges(Building building, List<GraphNode> graphNodes) {
-        List<GraphEdge> graphEdges = new ArrayList<>();
-        for(GraphNode sourceNode: graphNodes){
-
-        }
-        return graphEdges;
-    }
-
     public static List<GraphNode> getNodes(Building building) {
         List<GraphNode> graphNodes = new ArrayList<>();
         for (int i = 0; i < building.getHeight(); i++) {

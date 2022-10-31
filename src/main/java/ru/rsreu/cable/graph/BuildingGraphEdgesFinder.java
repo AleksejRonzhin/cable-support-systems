@@ -4,10 +4,8 @@ import ru.rsreu.cable.models.Building;
 import ru.rsreu.cable.models.ElementType;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-
-import static ru.rsreu.cable.graph.BuildingGraphUtils.getNodes;
+import java.util.Optional;
 
 public class BuildingGraphEdgesFinder {
     private final List<GraphEdge> edges;
@@ -21,17 +19,50 @@ public class BuildingGraphEdgesFinder {
         this.elements = building.getElements();
         this.height = building.getHeight();
         this.length = building.getLength();
-        this.nodes = getNodes(building);
-        System.out.println("nodes =" + nodes.size());
+        this.nodes = BuildingGraphUtils.getNodes(building);
     }
 
-    public List<GraphEdge> find() {
-        for (GraphNode sourceNode : nodes) {
-            List<Coords> prevCoords = new ArrayList<>();
-            prevCoords.add(new Coords(sourceNode.getI(), sourceNode.getJ()));
-            rec(sourceNode, prevCoords, 0, sourceNode.getI(), sourceNode.getJ());
+    private static List<GraphEdge> deleteExtraEdges(List<GraphEdge> edges) {
+        List<GraphEdge> edgesWithoutRepeats = deleteRepeatEdges(edges);
+        return deleteReverseEdges(edgesWithoutRepeats);
+    }
+
+    private static List<GraphEdge> deleteReverseEdges(List<GraphEdge> edges) {
+        List<GraphEdge> newEdges = new ArrayList<>();
+        for (GraphEdge graphEdge : edges) {
+            Optional<GraphEdge> reverseEdge =
+                    newEdges.stream().filter(newEdge -> newEdge.getFirstNode() == graphEdge.getSecondNode()
+                            && newEdge.getSecondNode() == graphEdge.getFirstNode()).findFirst();
+            if (reverseEdge.isPresent()) {
+                if (reverseEdge.get().getDistance() > graphEdge.getDistance()) {
+                    newEdges.remove(reverseEdge.get());
+                    newEdges.add(graphEdge);
+                }
+            } else {
+                newEdges.add(graphEdge);
+            }
         }
-        return edges;
+        return newEdges;
+    }
+
+    private static List<GraphEdge> deleteRepeatEdges(List<GraphEdge> edges) {
+        List<GraphEdge> newEdges = new ArrayList<>();
+        for (GraphEdge graphEdge : edges) {
+            Optional<GraphEdge> takenEdge = newEdges.stream().filter(newEdge -> newEdge.getFirstNode() == graphEdge.getFirstNode() && newEdge.getSecondNode() == graphEdge.getSecondNode()).findFirst();
+            if (takenEdge.isPresent()) {
+                if (takenEdge.get().getDistance() > graphEdge.getDistance()) {
+                    newEdges.remove(takenEdge.get());
+                    newEdges.add(graphEdge);
+                }
+            } else {
+                newEdges.add(graphEdge);
+            }
+        }
+        return newEdges;
+    }
+
+    public List<GraphNode> getNodes() {
+        return nodes;
     }
 
     public void rec(GraphNode sourceNode, List<Coords> prev, int distance, int i, int j) {
@@ -42,15 +73,17 @@ public class BuildingGraphEdgesFinder {
                 continue;
             }
 
+            List<Coords> newPrev = new ArrayList<>(prev);
+            newPrev.add(coords);
+
             ElementType element = elements[coords.getI()][coords.getJ()];
             if (element == ElementType.NODE || element == ElementType.CONSUMER || element == ElementType.SUPPLIER) {
                 GraphNode foundNode = getByCoords(coords);
-                GraphEdge newEdge = new GraphEdge(sourceNode, foundNode, distance + 1);
+                GraphEdge newEdge = new GraphEdge(sourceNode, foundNode, distance + 1, newPrev);
                 edges.add(newEdge);
             }
             if (element == ElementType.CABLE) {
-                List<Coords> newPrev = new ArrayList<>(prev);
-                newPrev.add(coords);
+
                 rec(sourceNode, newPrev, distance + 1, coords.getI(), coords.getJ());
             }
         }
@@ -75,5 +108,14 @@ public class BuildingGraphEdgesFinder {
             relatedElements.add(new Coords(i, j + 1));
         }
         return relatedElements;
+    }
+
+    public List<GraphEdge> find() {
+        for (GraphNode sourceNode : nodes) {
+            List<Coords> prevCoords = new ArrayList<>();
+            prevCoords.add(new Coords(sourceNode.getI(), sourceNode.getJ()));
+            rec(sourceNode, prevCoords, 0, sourceNode.getI(), sourceNode.getJ());
+        }
+        return deleteExtraEdges(edges);
     }
 }
