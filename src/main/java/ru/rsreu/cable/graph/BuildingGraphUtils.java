@@ -1,5 +1,6 @@
 package ru.rsreu.cable.graph;
 
+import ru.rsreu.cable.graph.models.GraphNode;
 import ru.rsreu.cable.models.Building;
 import ru.rsreu.cable.models.ElementType;
 

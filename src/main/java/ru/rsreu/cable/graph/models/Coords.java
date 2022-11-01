@@ -1,4 +1,4 @@
-package ru.rsreu.cable.graph;
+package ru.rsreu.cable.graph.models;
 
 public class Coords {
     private final int i;

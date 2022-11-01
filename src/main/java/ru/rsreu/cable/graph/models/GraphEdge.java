@@ -1,4 +1,4 @@
-package ru.rsreu.cable.graph;
+package ru.rsreu.cable.graph.models;
 
 import java.util.List;
 
@@ -35,5 +35,9 @@ public class GraphEdge {
 
     public int getDistance() {
         return distance;
+    }
+
+    public List<Coords> getCoords() {
+        return coords;
     }
 }

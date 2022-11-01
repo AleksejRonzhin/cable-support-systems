@@ -1,4 +1,4 @@
-package ru.rsreu.cable.graph;
+package ru.rsreu.cable.graph.models;
 
 import ru.rsreu.cable.models.ElementType;
 

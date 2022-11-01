@@ -49,7 +49,7 @@ public class CableSupportSystemService {
         Building building = addCablesFrame(sourceBuilding);
         building = addFlyingCables(building);
         building = addNodes(building);
-        building = getResult(building);
+        building = getResultBuilding(building, sourceBuilding);
         return building;
     }
 }
