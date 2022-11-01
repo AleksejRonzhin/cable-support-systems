@@ -2,6 +2,7 @@ package ru.rsreu.cable.utils;
 
 import ru.rsreu.cable.graph.BuildingGraphEdgesFinder;
 import ru.rsreu.cable.graph.DijkstraSolver;
+import ru.rsreu.cable.graph.exceptions.NotConnectBetweenNodesException;
 import ru.rsreu.cable.graph.models.Coords;
 import ru.rsreu.cable.graph.models.GraphEdge;
 import ru.rsreu.cable.graph.models.GraphNode;
@@ -163,32 +164,68 @@ public class BuildingUtils {
         BuildingGraphEdgesFinder finder = new BuildingGraphEdgesFinder(buildingWithNodes);
         List<GraphEdge> edges = finder.find();
         List<GraphNode> nodes = finder.getNodes();
-
-        System.out.println("nodes count =" + nodes.size());
-        AtomicInteger i = new AtomicInteger();
-        nodes.forEach(node -> {
-            System.out.println(" " + (i.getAndIncrement()) + " " + node.toString());
-        });
-        System.out.println("edges count =" + edges.size());
-        edges.forEach(System.out::println);
         List<GraphNode> consumers = getConsumers(nodes);
-        System.out.println("CONSUMERS:");
-        consumers.forEach(System.out::println);
         List<GraphNode> suppliers = getSuppliers(nodes);
-        System.out.println("SUPPLIERS");
-        suppliers.forEach(System.out::println);
-        DijkstraSolver solver = new DijkstraSolver(nodes, edges);
 
 
         List<GraphPath> takenPaths = new ArrayList<>();
         for(GraphNode consumer: consumers){
-            System.out.println();
             List<GraphPath> paths = new ArrayList<>();
             for(GraphNode supplier: suppliers){
-                GraphPath path = solver.solve(consumer, supplier);
-                paths.add(path);
-                System.out.println(path);
+                List<GraphNode> nodes2 = new ArrayList<>(nodes);
+                List<GraphEdge> edges2 = new ArrayList<>(edges);
+                for(GraphNode consumer2: consumers){
+                    if(consumer2 != consumer){
+                        nodes2.remove(consumer2);
+                        for(GraphEdge edge: edges){
+                            if(edge.getFirstNode() == consumer2 || edge.getSecondNode() == consumer2){
+                                edges2.remove(edge);
+                            }
+                        }
+                    }
 
+                }
+                for(GraphNode supplier2: suppliers){
+                    if(supplier2 != supplier){
+                        nodes2.remove(supplier2);
+                        for(GraphEdge edge: edges){
+                            if(edge.getFirstNode() == supplier2 || edge.getSecondNode() == supplier2){
+                                edges2.remove(edge);
+                            }
+                        }
+                    }
+                }
+
+                boolean flagConsumer = true;
+                boolean flagSupplier = true;
+                for(GraphEdge edge: edges2){
+                    if (edge.getFirstNode() == consumer || edge.getSecondNode() == consumer) {
+                        flagConsumer = false;
+                    }
+                    if (edge.getFirstNode() == supplier || edge.getSecondNode() == supplier) {
+                        flagSupplier = false;
+                    }
+                }
+                if(flagConsumer){
+                    System.out.println("CONSUMER " + consumer + " have not connect");
+                    continue;
+                }
+                if(flagSupplier){
+                    System.out.println("SUPPLIER " + supplier + " have not connect");
+                    continue;
+                }
+
+                try{
+
+                    DijkstraSolver solver = new DijkstraSolver(nodes2, edges2);
+                    GraphPath path = solver.solve(consumer, supplier);
+                    paths.add(path);
+                } catch (NotConnectBetweenNodesException e) {
+                    System.out.println("SUPPLIER " + supplier + " AND CONSUMER" + consumer + " have not connect");
+                }
+            }
+            if(paths.isEmpty()){
+                continue;
             }
             takenPaths.add(paths.stream().min(Comparator.comparingInt(GraphPath::getDistance)).get());
             paths.forEach(System.out::println);

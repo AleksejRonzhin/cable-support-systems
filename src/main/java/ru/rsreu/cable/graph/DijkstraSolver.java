@@ -1,15 +1,15 @@
 package ru.rsreu.cable.graph;
 
+import ru.rsreu.cable.graph.exceptions.NotConnectBetweenNodesException;
 import ru.rsreu.cable.graph.models.GraphEdge;
 import ru.rsreu.cable.graph.models.GraphNode;
 import ru.rsreu.cable.graph.models.GraphPath;
-import ru.rsreu.cable.models.ElementType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DijkstraSolver {
-    private final int[][] generalTable;
     private final int[][] table;
     private final int[] distances;
     private final int[] visitedNodes;
@@ -21,8 +21,7 @@ public class DijkstraSolver {
         this.nodes = nodes;
         this.edges = edges;
         this.size = nodes.size();
-        this.generalTable = createTable(nodes, edges);
-        this.table = this.generalTable;
+        this.table = createTable(nodes, edges);
         this.distances = new int[size];
         this.visitedNodes = new int[size];
     }
@@ -43,14 +42,10 @@ public class DijkstraSolver {
         return table;
     }
 
-    public GraphPath solve(GraphNode beginNode, GraphNode targetNode) {
-        System.out.println("SOLVE");
+    public GraphPath solve(GraphNode beginNode, GraphNode targetNode) throws NotConnectBetweenNodesException {
         int beginIndex = nodes.indexOf(beginNode);
+        int targetIndex = nodes.indexOf(targetNode);
         initStartValues(beginIndex);
-        initTable(beginNode, targetNode);
-
-
-        System.out.println("start solving");
         int minIndex, minValue;
         do {
             minIndex = Integer.MAX_VALUE;
@@ -74,37 +69,10 @@ public class DijkstraSolver {
             }
         } while (minIndex < Integer.MAX_VALUE);
 
-        System.out.println("Ending solving");
-        GraphPath path = getGraphPath(beginNode, targetNode);
-        System.out.println("started back table");
-        backTable(beginNode, targetNode);
-        return path;
-    }
-
-    private void backTable(GraphNode beginNode, GraphNode targetNodes){
-        System.out.println("back table");
-        for (GraphNode node : nodes) {
-            if (node != beginNode && node != targetNodes) {
-                if (node.getType() == ElementType.CONSUMER || node.getType() == ElementType.SUPPLIER) {
-                    for (int i = 0; i < size; i++) {
-                        table[i][node.getJ()] = generalTable[i][node.getJ()];
-                    }
-                }
-            }
+        if(distances[nodes.indexOf(targetNode)] == Integer.MAX_VALUE){
+            throw new NotConnectBetweenNodesException();
         }
-    }
-
-    private void initTable(GraphNode beginNode, GraphNode targetNodes) {
-        System.out.println("init table");
-        for (GraphNode node : nodes) {
-            if (node != beginNode && node != targetNodes) {
-                if (node.getType() == ElementType.CONSUMER || node.getType() == ElementType.SUPPLIER) {
-                    for (int i = 0; i < size; i++) {
-                        table[i][node.getJ()] = 0;
-                    }
-                }
-            }
-        }
+        return getGraphPath(beginNode, targetNode);
     }
 
     private void initStartValues(int beginIndex) {
@@ -123,11 +91,6 @@ public class DijkstraSolver {
         pathNodesIndexes[0] = currentIndex;
         int indexCount = 1;
         int weight = distances[currentIndex];
-        for(int i: distances){
-            if(i == Integer.MAX_VALUE){
-
-            }
-        }
         while (currentIndex != beginIndex) {
             for (int i = 0; i < size; i++) {
                 if (table[i][currentIndex] != 0) {
