@@ -22,8 +22,9 @@
         </td>
         <td>
             <div th:if="${resultFilename ne null}">
-                <h2>Выгрузка результата</h2>
-                <a th:href="${resultFilename}" th:download="${resultFilename}">Скачать</a>
+                <p>Результат сохранен в</p>
+                <p th:text="${resultFilename}"></p>
+                <a th:download="${resultFilename}" th:href="${resultFilename}">Скачать</a>
             </div>
         </td>
     </tr>
@@ -42,7 +43,8 @@
         </td>
         <td>
             <div th:if="${result ne null}">
-                <h2>Результат</h2>
+                <h2 th:text="'Результат: ' + ${cableCount} + '.'">
+                </h2>
                 <table class="buildingTable">
                     <tr th:each="line : ${result}">
                         <td th:each="symbol : ${line}">

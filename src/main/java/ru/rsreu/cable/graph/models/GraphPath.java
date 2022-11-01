@@ -1,6 +1,8 @@
 package ru.rsreu.cable.graph.models;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class GraphPath {
     private final List<GraphEdge> edges;
@@ -20,10 +22,6 @@ public class GraphPath {
         return "GraphPath{" + "consumer=" + consumer + ", supplier=" + supplier + ", distance=" + distance + '}';
     }
 
-    public int getDistance() {
-        return distance;
-    }
-
     public List<GraphEdge> getEdges() {
         return edges;
     }
@@ -34,5 +32,11 @@ public class GraphPath {
 
     public GraphNode getSupplier() {
         return supplier;
+    }
+
+    public Set<Coords> getCoords() {
+        Set<Coords> coords = new HashSet<>();
+        edges.forEach(edge -> coords.addAll(edge.getCoords()));
+        return coords;
     }
 }

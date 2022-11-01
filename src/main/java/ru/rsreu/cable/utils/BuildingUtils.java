@@ -14,6 +14,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class BuildingUtils {
+    private static List<GraphPath> consumerPaths;
+    private static Set<List<GraphPath>> pathsSet;
+
     public static Building createBuilding(int height, int length, char[][] symbols) {
         ElementType[][] elements = new ElementType[height][length];
         for (int i = 0; i < height; i++) {
@@ -39,7 +42,7 @@ public class BuildingUtils {
     }
 
     public static String print(Building building) {
-        return building.getCountCables() + "\n" + Arrays.stream(building.getElements()).map(elementRow -> Arrays.stream(elementRow).map(element -> String.valueOf(element.getSymbol())).collect(Collectors.joining(" "))).collect(Collectors.joining("\n"));
+        return building.getCablesCount() + "\n" + Arrays.stream(building.getElements()).map(elementRow -> Arrays.stream(elementRow).map(element -> String.valueOf(element.getSymbol())).collect(Collectors.joining(" "))).collect(Collectors.joining("\n"));
     }
 
     public static void setAllAvailableCables(Building building) {
@@ -91,7 +94,6 @@ public class BuildingUtils {
         }
     }
 
-
     public static void setFlyingCables(Building building, Building originalBuilding) {
         for (int i = 0; i < building.getHeight(); i++) {
             for (int j = 0; j < building.getLength(); j++) {
@@ -137,35 +139,94 @@ public class BuildingUtils {
         }
     }
 
-    public static Map<GraphNode, List<GraphPath>> getConsumerPaths(Graph graph) {
+    public static List<GraphPath> getConsumerPaths(Graph graph) {
         List<GraphNode> consumers = getConsumers(graph.getNodes());
         List<GraphNode> suppliers = getSuppliers(graph.getNodes());
-        Map<GraphNode, List<GraphPath>> consumerPaths = new HashMap<>();
+        List<GraphPath> consumerPaths = new ArrayList<>();
         for (GraphNode consumer : consumers) {
-            List<GraphPath> paths = new ArrayList<>();
             for (GraphNode supplier : suppliers) {
                 Graph subgraph = getSubgraphForConsumerAndSupplier(consumer, supplier, graph);
                 if (!pathIsAvailable(consumer, supplier, subgraph.getEdges())) continue;
                 try {
                     DijkstraSolver solver = new DijkstraSolver(subgraph.getNodes(), subgraph.getEdges());
                     GraphPath path = solver.solve(consumer, supplier);
-                    paths.add(path);
+                    consumerPaths.add(path);
                 } catch (NotConnectBetweenNodesException ignored) {
                 }
             }
-            if (paths.isEmpty()) {
-                continue;
-            }
-            consumerPaths.put(consumer, paths);
         }
         return consumerPaths;
     }
 
-    public static Building getOptimalBuilding(Building originalBuilding, Map<GraphNode, List<GraphPath>> consumerPaths) {
-        List<GraphPath> takenPaths = new ArrayList<>();
-        consumerPaths.forEach((v, k) -> takenPaths.add(k.get(0)));
-        Building copyBuilding = copyBuilding(originalBuilding);
-        return putPaths(copyBuilding, takenPaths);
+    public static Building getOptimalBuilding(Building originalBuilding, List<GraphPath> consumerPaths) {
+        BuildingUtils.consumerPaths = consumerPaths;
+        pathsSet = new HashSet<>();
+        int consumerCount = getConsumerCount(consumerPaths);
+        recursiveSearchPaths(new LinkedList<>(), consumerCount);
+
+        Building optimalBuilding = null;
+        int minCountCables = Integer.MAX_VALUE;
+        for (List<GraphPath> paths : pathsSet) {
+            Building copyBuilding = copyBuilding(originalBuilding);
+            Building building = putPaths(copyBuilding, paths);
+            int cablesCount = building.getCablesCount();
+            if (cablesCount < minCountCables) {
+                minCountCables = cablesCount;
+                optimalBuilding = building;
+            }
+        }
+        if (optimalBuilding != null) {
+            return optimalBuilding;
+        }
+        return originalBuilding;
+    }
+
+    private static int getConsumerCount(List<GraphPath> consumerPaths) {
+        Set<GraphNode> set = new HashSet<>();
+        consumerPaths.forEach(path -> set.add(path.getConsumer()));
+        return set.size();
+    }
+
+    static void recursiveSearchPaths(Deque<Integer> indexes, int expectedSize) {
+        if (indexes.size() == expectedSize) {
+            List<GraphPath> paths = new ArrayList<>();
+            for (Integer i : indexes) {
+                paths.add(consumerPaths.get(i));
+            }
+            if (checkPaths(paths)) {
+                pathsSet.add(paths);
+            }
+            return;
+        }
+        for (int i = 0; i < consumerPaths.size(); i++) {
+            if (!indexes.contains(i)) {
+                indexes.addLast(i);
+                recursiveSearchPaths(indexes, expectedSize);
+                indexes.removeLast();
+            }
+        }
+    }
+
+    private static boolean checkPaths(List<GraphPath> paths) {
+        int consumerCount = getConsumerCount(paths);
+        if (paths.size() != consumerCount) return false;
+        for (int i = 0; i < paths.size(); i++) {
+            for (GraphPath path : paths) {
+                GraphPath firstPath = paths.get(i);
+                if (firstPath.getSupplier() != path.getSupplier()) {
+                    Set<Coords> firstCoords = firstPath.getCoords();
+                    Set<Coords> secondCoords = path.getCoords();
+                    for (Coords firstCoord : firstCoords) {
+                        for (Coords secondCoord : secondCoords) {
+                            if (Math.abs(firstCoord.getI() - secondCoord.getI()) < 2 || Math.abs(secondCoord.getJ() - firstCoord.getJ()) < 2) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     private static boolean pathIsAvailable(GraphNode consumer, GraphNode supplier, List<GraphEdge> edges) {
@@ -230,7 +291,7 @@ public class BuildingUtils {
         return getNodesByType(nodes, ElementType.SUPPLIER);
     }
 
-    private static List<GraphNode> getConsumers(List<GraphNode> nodes) {
+    public static List<GraphNode> getConsumers(List<GraphNode> nodes) {
         return getNodesByType(nodes, ElementType.CONSUMER);
     }
 

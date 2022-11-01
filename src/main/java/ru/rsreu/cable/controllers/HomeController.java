@@ -12,6 +12,7 @@ import ru.rsreu.cable.models.Building;
 import ru.rsreu.cable.services.CableSupportSystemService;
 import ru.rsreu.cable.utils.BuildingUtils;
 
+import java.io.File;
 import java.util.List;
 
 import static ru.rsreu.cable.utils.FileUtils.*;
@@ -49,19 +50,12 @@ public class HomeController {
 
             attributes.addFlashAttribute("source", BuildingUtils.printLikeSymbols(sourceBuilding));
             attributes.addFlashAttribute("result", BuildingUtils.printLikeSymbols(resultBuilding));
-            attributes.addFlashAttribute("resultFilename",  resultFilename);
-
-
+            attributes.addFlashAttribute("resultFilename",  new File(resultFilename).getAbsolutePath());
+            attributes.addFlashAttribute("cableCount", resultBuilding.getCablesCount());
             return "redirect:/";
         } catch (IncorrectFileException e) {
             attributes.addFlashAttribute("message", String.format("Содержимое файла некорректно. %s", e.getMessage()));
             return "redirect:/";
         }
-    }
-
-    @GetMapping("/load")
-    public String loadResult(@RequestParam String resultFilename){
-
-        return "forward:/";
     }
 }

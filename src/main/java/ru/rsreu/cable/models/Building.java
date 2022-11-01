@@ -12,7 +12,7 @@ public class Building {
 
     }
 
-    public int getCountCables() {
+    public int getCablesCount() {
         int counter = 0;
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < length; j++) {
