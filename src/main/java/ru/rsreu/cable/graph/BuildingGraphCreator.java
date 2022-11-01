@@ -10,19 +10,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class BuildingGraphEdgesFinder {
-    private final List<GraphEdge> edges;
+public class BuildingGraphCreator {
+    private List<GraphEdge> edges;
     private final ElementType[][] elements;
     private final int height;
     private final int length;
     private final List<GraphNode> nodes;
 
-    public BuildingGraphEdgesFinder(Building building) {
-        this.edges = new ArrayList<>();
+    public BuildingGraphCreator(Building building) {
         this.elements = building.getElements();
         this.height = building.getHeight();
         this.length = building.getLength();
         this.nodes = BuildingGraphUtils.getNodes(building);
+        initEdges();
+    }
+
+    public Graph create(){
+        return new Graph(nodes, edges);
     }
 
     private static List<GraphEdge> deleteExtraEdges(List<GraphEdge> edges) {
@@ -64,12 +68,7 @@ public class BuildingGraphEdgesFinder {
         return newEdges;
     }
 
-    public List<GraphNode> getNodes() {
-        return nodes;
-    }
-
-    public void rec(GraphNode sourceNode, List<Coords> prev, int distance, int i, int j) {
-
+    private void rec(GraphNode sourceNode, List<Coords> prev, int distance, int i, int j) {
         List<Coords> relatedCoords = getRelatedCoords(i, j);
         for (Coords coords : relatedCoords) {
             if ((prev.stream().anyMatch(prevCoords -> prevCoords.getI() == coords.getI() && prevCoords.getJ() == coords.getJ()))) {
@@ -113,14 +112,13 @@ public class BuildingGraphEdgesFinder {
         return relatedElements;
     }
 
-    public List<GraphEdge> find() {
+    private void initEdges() {
+        this.edges = new ArrayList<>();
         for (GraphNode sourceNode : nodes) {
             List<Coords> prevCoords = new ArrayList<>();
             prevCoords.add(new Coords(sourceNode.getI(), sourceNode.getJ()));
             rec(sourceNode, prevCoords, 0, sourceNode.getI(), sourceNode.getJ());
         }
-        return deleteExtraEdges(edges);
+        this.edges = deleteExtraEdges(this.edges);
     }
-
-
 }

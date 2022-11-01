@@ -1,7 +1,7 @@
 package ru.rsreu.cable.utils;
 
-import ru.rsreu.cable.graph.BuildingGraphEdgesFinder;
 import ru.rsreu.cable.graph.DijkstraSolver;
+import ru.rsreu.cable.graph.Graph;
 import ru.rsreu.cable.graph.exceptions.NotConnectBetweenNodesException;
 import ru.rsreu.cable.graph.models.Coords;
 import ru.rsreu.cable.graph.models.GraphEdge;
@@ -10,11 +10,7 @@ import ru.rsreu.cable.graph.models.GraphPath;
 import ru.rsreu.cable.models.Building;
 import ru.rsreu.cable.models.ElementType;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class BuildingUtils {
@@ -46,26 +42,20 @@ public class BuildingUtils {
         return building.getCountCables() + "\n" + Arrays.stream(building.getElements()).map(elementRow -> Arrays.stream(elementRow).map(element -> String.valueOf(element.getSymbol())).collect(Collectors.joining(" "))).collect(Collectors.joining("\n"));
     }
 
-    public static Building addCablesFrame(Building building) {
-        ElementType[][] copyElements = Arrays.stream(building.getElements()).map(ElementType[]::clone).toArray(ElementType[][]::new);
-        setAllAvailableCables(building.getHeight(), building.getLength(), copyElements);
-        return new Building(building.getHeight(), building.getLength(), copyElements);
-    }
-
-    private static void setAllAvailableCables(int height, int length, ElementType[][] elements) {
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < length; j++) {
-                ElementType element = elements[i][j];
+    public static void setAllAvailableCables(Building building) {
+        for (int i = 0; i < building.getHeight(); i++) {
+            for (int j = 0; j < building.getLength(); j++) {
+                ElementType element = building.getElements()[i][j];
                 if (element == ElementType.WALL) {
-                    setCablesAround(height, length, elements, i, j);
+                    setCablesAround(building.getHeight(), building.getLength(), building.getElements(), i, j);
                 }
             }
         }
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < length; j++) {
-                ElementType element = elements[i][j];
+        for (int i = 0; i < building.getHeight(); i++) {
+            for (int j = 0; j < building.getLength(); j++) {
+                ElementType element = building.getElements()[i][j];
                 if (element == ElementType.PIPE) {
-                    deleteCablesAround(height, length, elements, i, j);
+                    deleteCablesAround(building.getHeight(), building.getLength(), building.getElements(), i, j);
                 }
             }
         }
@@ -101,19 +91,13 @@ public class BuildingUtils {
         }
     }
 
-    public static Building addFlyingCables(Building building) {
-        ElementType[][] copyElements = Arrays.stream(building.getElements()).map(ElementType[]::clone).toArray(ElementType[][]::new);
 
-        setFlyingCables(building.getHeight(), building.getLength(), copyElements, building.getElements());
-        return new Building(building.getHeight(), building.getLength(), copyElements);
-    }
-
-    private static void setFlyingCables(int height, int length, ElementType[][] copyElements, ElementType[][] originalElements) {
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < length; j++) {
-                ElementType element = copyElements[i][j];
+    public static void setFlyingCables(Building building, Building originalBuilding) {
+        for (int i = 0; i < building.getHeight(); i++) {
+            for (int j = 0; j < building.getLength(); j++) {
+                ElementType element = building.getElements()[i][j];
                 if (element == ElementType.SPACE) {
-                    trySetFlyingCable(height, length, copyElements, originalElements, i, j);
+                    trySetFlyingCable(building.getHeight(), building.getLength(), building.getElements(), originalBuilding.getElements(), i, j);
                 }
             }
         }
@@ -132,18 +116,11 @@ public class BuildingUtils {
         }
     }
 
-    public static Building addNodes(Building building) {
-        ElementType[][] copyElements = Arrays.stream(building.getElements()).map(ElementType[]::clone).toArray(ElementType[][]::new);
-
-        setNodes(building.getHeight(), building.getLength(), copyElements, building.getElements());
-        return new Building(building.getHeight(), building.getLength(), copyElements);
-    }
-
-    private static void setNodes(int height, int length, ElementType[][] elements, ElementType[][] originalElements) {
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < length; j++) {
-                if (elements[i][j] == ElementType.CABLE) {
-                    trySetNode(height, length, elements, originalElements, i, j);
+    public static void setNodes(Building building, Building originalBuilding) {
+        for (int i = 0; i < building.getHeight(); i++) {
+            for (int j = 0; j < building.getLength(); j++) {
+                if (building.getElements()[i][j] == ElementType.CABLE) {
+                    trySetNode(building.getHeight(), building.getLength(), building.getElements(), originalBuilding.getElements(), i, j);
                 }
             }
         }
@@ -160,80 +137,77 @@ public class BuildingUtils {
         }
     }
 
-    public static Building getResultBuilding(Building buildingWithNodes, Building sourceBuilding) {
-        BuildingGraphEdgesFinder finder = new BuildingGraphEdgesFinder(buildingWithNodes);
-        List<GraphEdge> edges = finder.find();
-        List<GraphNode> nodes = finder.getNodes();
-        List<GraphNode> consumers = getConsumers(nodes);
-        List<GraphNode> suppliers = getSuppliers(nodes);
-
-
-        List<GraphPath> takenPaths = new ArrayList<>();
-        for(GraphNode consumer: consumers){
+    public static Map<GraphNode, List<GraphPath>> getConsumerPaths(Graph graph) {
+        List<GraphNode> consumers = getConsumers(graph.getNodes());
+        List<GraphNode> suppliers = getSuppliers(graph.getNodes());
+        Map<GraphNode, List<GraphPath>> consumerPaths = new HashMap<>();
+        for (GraphNode consumer : consumers) {
             List<GraphPath> paths = new ArrayList<>();
-            for(GraphNode supplier: suppliers){
-                List<GraphNode> nodes2 = new ArrayList<>(nodes);
-                List<GraphEdge> edges2 = new ArrayList<>(edges);
-                for(GraphNode consumer2: consumers){
-                    if(consumer2 != consumer){
-                        nodes2.remove(consumer2);
-                        for(GraphEdge edge: edges){
-                            if(edge.getFirstNode() == consumer2 || edge.getSecondNode() == consumer2){
-                                edges2.remove(edge);
-                            }
-                        }
-                    }
-
-                }
-                for(GraphNode supplier2: suppliers){
-                    if(supplier2 != supplier){
-                        nodes2.remove(supplier2);
-                        for(GraphEdge edge: edges){
-                            if(edge.getFirstNode() == supplier2 || edge.getSecondNode() == supplier2){
-                                edges2.remove(edge);
-                            }
-                        }
-                    }
-                }
-
-                boolean flagConsumer = true;
-                boolean flagSupplier = true;
-                for(GraphEdge edge: edges2){
-                    if (edge.getFirstNode() == consumer || edge.getSecondNode() == consumer) {
-                        flagConsumer = false;
-                    }
-                    if (edge.getFirstNode() == supplier || edge.getSecondNode() == supplier) {
-                        flagSupplier = false;
-                    }
-                }
-                if(flagConsumer){
-                    System.out.println("CONSUMER " + consumer + " have not connect");
-                    continue;
-                }
-                if(flagSupplier){
-                    System.out.println("SUPPLIER " + supplier + " have not connect");
-                    continue;
-                }
-
-                try{
-
-                    DijkstraSolver solver = new DijkstraSolver(nodes2, edges2);
+            for (GraphNode supplier : suppliers) {
+                Graph subgraph = getSubgraphForConsumerAndSupplier(consumer, supplier, graph);
+                if (!pathIsAvailable(consumer, supplier, subgraph.getEdges())) continue;
+                try {
+                    DijkstraSolver solver = new DijkstraSolver(subgraph.getNodes(), subgraph.getEdges());
                     GraphPath path = solver.solve(consumer, supplier);
                     paths.add(path);
-                } catch (NotConnectBetweenNodesException e) {
-                    System.out.println("SUPPLIER " + supplier + " AND CONSUMER" + consumer + " have not connect");
+                } catch (NotConnectBetweenNodesException ignored) {
                 }
             }
-            if(paths.isEmpty()){
+            if (paths.isEmpty()) {
                 continue;
             }
-            takenPaths.add(paths.stream().min(Comparator.comparingInt(GraphPath::getDistance)).get());
-            paths.forEach(System.out::println);
+            consumerPaths.put(consumer, paths);
         }
+        return consumerPaths;
+    }
 
-        ElementType[][] copyElements = Arrays.stream(sourceBuilding.getElements()).map(ElementType[]::clone).toArray(ElementType[][]::new);
-        Building copySourceBuilding = new Building(sourceBuilding.getHeight(), sourceBuilding.getLength(), copyElements);
-        return putPaths(copySourceBuilding, takenPaths);
+    public static Building getOptimalBuilding(Building originalBuilding, Map<GraphNode, List<GraphPath>> consumerPaths) {
+        List<GraphPath> takenPaths = new ArrayList<>();
+        consumerPaths.forEach((v, k) -> takenPaths.add(k.get(0)));
+        Building copyBuilding = copyBuilding(originalBuilding);
+        return putPaths(copyBuilding, takenPaths);
+    }
+
+    private static boolean pathIsAvailable(GraphNode consumer, GraphNode supplier, List<GraphEdge> edges) {
+        boolean flagConsumer = false;
+        boolean flagSupplier = false;
+        for (GraphEdge edge : edges) {
+            if (flagConsumer || edge.getFirstNode() == consumer || edge.getSecondNode() == consumer) {
+                flagConsumer = true;
+            }
+            if (flagSupplier || edge.getFirstNode() == supplier || edge.getSecondNode() == supplier) {
+                flagSupplier = true;
+            }
+        }
+        return flagSupplier && flagConsumer;
+    }
+
+    private static Graph getSubgraphForConsumerAndSupplier(GraphNode consumer, GraphNode supplier, Graph graph) {
+        List<GraphNode> newNodes = new ArrayList<>(graph.getNodes());
+        List<GraphEdge> newEdges = new ArrayList<>(graph.getEdges());
+        for (GraphNode node : graph.getNodes()) {
+            if (node.getType() == ElementType.CONSUMER) {
+                if (node != consumer) {
+                    newNodes.remove(node);
+                    for (GraphEdge edge : graph.getEdges()) {
+                        if (edge.getFirstNode() == node || edge.getSecondNode() == node) {
+                            newEdges.remove(edge);
+                        }
+                    }
+                }
+            }
+            if (node.getType() == ElementType.SUPPLIER) {
+                if (node != supplier) {
+                    newNodes.remove(node);
+                    for (GraphEdge edge : graph.getEdges()) {
+                        if (edge.getFirstNode() == node || edge.getSecondNode() == node) {
+                            newEdges.remove(edge);
+                        }
+                    }
+                }
+            }
+        }
+        return new Graph(newNodes, newEdges);
     }
 
     private static Building putPaths(Building building, List<GraphPath> paths) {
@@ -265,7 +239,7 @@ public class BuildingUtils {
 
     }
 
-    public static List<ElementType> getCheckingElements(int height, int length, ElementType[][] originalElements, int i, int j) {
+    private static List<ElementType> getCheckingElements(int height, int length, ElementType[][] originalElements, int i, int j) {
         List<ElementType> checkElements = new ArrayList<>();
         if (i - 1 >= 0) {
             checkElements.add(originalElements[i - 1][j]);
@@ -280,5 +254,10 @@ public class BuildingUtils {
             checkElements.add(originalElements[i][j + 1]);
         }
         return checkElements;
+    }
+
+    public static Building copyBuilding(Building building) {
+        ElementType[][] copyElements = Arrays.stream(building.getElements()).map(ElementType[]::clone).toArray(ElementType[][]::new);
+        return new Building(building.getHeight(), building.getLength(), copyElements);
     }
 }

@@ -4,10 +4,9 @@ import org.springframework.stereotype.Service;
 import ru.rsreu.cable.exceptions.IncorrectFileException;
 import ru.rsreu.cable.models.Building;
 import ru.rsreu.cable.utils.BuildingUtils;
+import ru.rsreu.cable.utils.CableSupportSystemStepper;
 
 import java.util.List;
-
-import static ru.rsreu.cable.utils.BuildingUtils.*;
 
 @Service
 public class CableSupportSystemService {
@@ -45,11 +44,11 @@ public class CableSupportSystemService {
         return symbols;
     }
 
-    public Building buildCableSupportSystem(Building sourceBuilding) {
-        Building building = addCablesFrame(sourceBuilding);
-        building = addFlyingCables(building);
-        building = addNodes(building);
-        building = getResultBuilding(building, sourceBuilding);
-        return building;
+    public Building buildCableSupportSystem(Building originalBuilding) {
+        return new CableSupportSystemStepper(originalBuilding)
+                .addCablesFrame()
+                .addFlyingCables()
+                .addNodes()
+                .getResultBuilding();
     }
 }
